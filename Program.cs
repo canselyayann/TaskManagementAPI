@@ -5,7 +5,8 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using System.Text;
 using TaskManagementAPI.Data;
 using TaskManagementAPI.Services; // UserService ve IUserService için gerekli
-
+using TaskManagementAPI.Hubs;
+using Microsoft.AspNetCore.SignalR;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -45,6 +46,10 @@ builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(); // Swagger'ý ekliyoruz
 builder.Services.AddScoped<TaskManagementAPI.Services.IUserService, TaskManagementAPI.Services.UserService>();
 builder.Services.AddScoped<YourService>();
+builder.Services.AddAuthorization();
+builder.Services.AddAuthentication();
+builder.Services.AddSignalR();
+
 
 
 var app = builder.Build();
