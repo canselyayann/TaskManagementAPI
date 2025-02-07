@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using TaskManagementAPI.Data;
 using TaskManagementAPI.Models;
+using Microsoft.AspNetCore.Authorization;
 
 namespace TaskManagementAPI.Controllers
 {

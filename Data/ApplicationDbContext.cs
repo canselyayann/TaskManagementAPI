@@ -17,10 +17,16 @@ namespace TaskManagementAPI.Data
         public DbSet<User> Users { get; set; }
         public DbSet<TaskAssignment> TaskAssignments { get; set; }
         public DbSet<Project> Projects { get; set; }
+        public DbSet<LoginModel> LoginModels { get; set; }
 
         protected override void OnModelCreating(ModelBuilder modelBuilder)
         {
             base.OnModelCreating(modelBuilder);
+
+            modelBuilder.Entity<LoginModel>()
+           .HasOne(l => l.User)  // LoginModel, User ile iliþkili
+           .WithMany()  // User tablosunda birden fazla login kaydýný kabul eder
+           .HasForeignKey(l => l.UserId);  // LoginModel'deki UserId, User tablosuna yabancý anahtar olacak
 
             modelBuilder.Entity<TaskModel>()
                 .HasKey(t => t.Id);  // TaskModel (alias kullanýldý)

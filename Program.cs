@@ -1,47 +1,62 @@
 using Microsoft.EntityFrameworkCore;
-using TaskManagementAPI.Data;  // DbContext sýnýfýnýn bulunduðu yer
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.IdentityModel.Tokens;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using System.Text;
+using TaskManagementAPI.Data;
+using TaskManagementAPI.Services; // UserService ve IUserService için gerekli
+
+
 
 var builder = WebApplication.CreateBuilder(args);
 
-// Baðlantý dizesini ekleyin
-builder.Services.AddDbContext<ApplicationDbContext>(options =>
-    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection"))); // appsettings.json'dan baðlantý dizesini al
+var jwtSettings = builder.Configuration.GetSection("Jwt");
+var secretKey = jwtSettings["Key"];
 
-// Diðer servisleri ekle
+if (string.IsNullOrEmpty(secretKey))
+{
+    throw new ArgumentNullException("JWT Key is missing in appsettings.json");
+}
+
+// JWT kimlik doðrulama ayarlarýný yapýyoruz
+builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
+    .AddJwtBearer(options =>
+    {
+        options.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuer = true,
+            ValidateAudience = true,
+            ValidateLifetime = true,
+            ValidIssuer = builder.Configuration["Jwt:Issuer"],
+            ValidAudience = builder.Configuration["Jwt:Audience"],
+            IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(builder.Configuration["Jwt:Key"]))
+        };
+    });
+
+// Baðlantý dizesini ekliyoruz
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
+
+
+// Servisleri ekliyoruz
+
+builder.Services.AddControllers();
 builder.Services.AddEndpointsApiExplorer();
-builder.Services.AddSwaggerGen();
+builder.Services.AddSwaggerGen(); // Swagger'ý ekliyoruz
+builder.Services.AddScoped<TaskManagementAPI.Services.IUserService, TaskManagementAPI.Services.UserService>();
+builder.Services.AddScoped<YourService>();
+
 
 var app = builder.Build();
 
-// Swagger ile geliþtirme ortamýnda API'yi belgeleyin
-if (app.Environment.IsDevelopment())
 {
     app.UseSwagger();
     app.UseSwaggerUI();
 }
 
 app.UseHttpsRedirection();
+app.UseAuthentication();  // Authentication middleware'ini ekliyoruz
+app.UseAuthorization();   // Authorization middleware'ini ekliyoruz
 
-var summaries = new[] { "Freezing", "Bracing", "Chilly", "Cool", "Mild", "Warm", "Balmy", "Hot", "Sweltering", "Scorching" };
-
-app.MapGet("/weatherforecast", () =>
-{
-    var forecast = Enumerable.Range(1, 5).Select(index =>
-        new WeatherForecast
-        (
-            DateOnly.FromDateTime(DateTime.Now.AddDays(index)),
-            Random.Shared.Next(-20, 55),
-            summaries[Random.Shared.Next(summaries.Length)]
-        ))
-        .ToArray();
-    return forecast;
-})
-.WithName("GetWeatherForecast")
-.WithOpenApi();
-
+app.MapControllers();
 app.Run();
-
-record WeatherForecast(DateOnly Date, int TemperatureC, string? Summary)
-{
-    public int TemperatureF => 32 + (int)(TemperatureC / 0.5556);
-}
